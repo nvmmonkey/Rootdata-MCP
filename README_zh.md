@@ -23,7 +23,7 @@ git clone https://github.com/your-username/rootdata-mcp
 # 安装依赖
 npm install
 
-# 包装程序
+# 建立测试程序
 npm run build
 
 # 创建 .env 文件
@@ -35,7 +35,7 @@ ROOTDATA_API_KEY=your_api_key_here
 
 ## 配置
 
-1. 从 [RootData](https://www.rootdata.com/Api) 获取 API 密钥
+1. 从 [RootData](https://www.rootdata.com/api-docs) 获取 API 密钥
 2. 在根目录创建 `.env` 文件：
 
 ```env
