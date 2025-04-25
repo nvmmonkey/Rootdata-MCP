@@ -35,7 +35,7 @@ ROOTDATA_API_KEY=your_api_key_here
 
 ## Configuration
 
-1. Get your API key from [RootData](https://www.rootdata.com/api-docs)
+1. Get your API key from [RootData](https://www.rootdata.com/Api)
 2. Create a `.env` file in the root directory:
 
 ```env
