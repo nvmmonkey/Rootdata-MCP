@@ -49,7 +49,7 @@ ROOTDATA_API_KEY=your_api_key_here
   "mcpServers": {
     "rootdata": {
       "command": "node",
-      "args": ["path/to/rootdata-mcp/build/index.js"],
+      "args": ["path/to/rootdata-mcp/build/index.ts"], //组装文件路径
       "env": {
         "ROOTDATA_API_KEY": "your_api_key_here"
       }
