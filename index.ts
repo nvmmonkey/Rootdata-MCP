@@ -102,7 +102,147 @@ interface ProjectsByTagsArgs {
   tagIds: string;
 }
 
+interface ComprehensiveQueryArgs {
+  query: string;
+  analysisType?:
+    | "project"
+    | "investor"
+    | "ecosystem"
+    | "trends"
+    | "fundraising"
+    | "comprehensive";
+  timeframe?: string;
+  depth?: "basic" | "detailed" | "full";
+  includeRelated?: boolean;
+}
+
+interface InvestigateEntityArgs {
+  entityName: string;
+  entityType?: "project" | "investor" | "person" | "auto";
+  investigationScope?: "basic" | "funding" | "social" | "ecosystem" | "all";
+}
+
+interface TrackTrendsArgs {
+  category:
+    | "hot_projects"
+    | "funding"
+    | "job_changes"
+    | "new_tokens"
+    | "ecosystem"
+    | "all";
+  timeRange?: "1d" | "7d" | "30d" | "3m";
+  filterBy?: {
+    ecosystem?: string;
+    tags?: string;
+    minFunding?: number;
+  };
+}
+
+interface CompareEntitiesArgs {
+  entities: string[];
+  compareType?: "metrics" | "funding" | "ecosystem" | "social" | "all";
+}
+
+interface CrossFunctionalAnalysisResult {
+  primaryData: any;
+  relatedProjects?: any[];
+  investors?: any[];
+  ecosystem?: any;
+  trends?: any;
+  fundraising?: any;
+  people?: any[];
+  tokens?: any[];
+  summary?: string;
+}
+
 // Type guards
+function isValidComprehensiveQueryArgs(
+  args: unknown
+): args is ComprehensiveQueryArgs {
+  const candidate = args as ComprehensiveQueryArgs;
+  return (
+    typeof args === "object" &&
+    args !== null &&
+    typeof candidate.query === "string" &&
+    (candidate.analysisType === undefined ||
+      [
+        "project",
+        "investor",
+        "ecosystem",
+        "trends",
+        "fundraising",
+        "comprehensive",
+      ].includes(candidate.analysisType)) &&
+    (candidate.timeframe === undefined ||
+      typeof candidate.timeframe === "string") &&
+    (candidate.depth === undefined ||
+      ["basic", "detailed", "full"].includes(candidate.depth)) &&
+    (candidate.includeRelated === undefined ||
+      typeof candidate.includeRelated === "boolean")
+  );
+}
+
+function isValidInvestigateEntityArgs(
+  args: unknown
+): args is InvestigateEntityArgs {
+  const candidate = args as InvestigateEntityArgs;
+  return (
+    typeof args === "object" &&
+    args !== null &&
+    typeof candidate.entityName === "string" &&
+    (candidate.entityType === undefined ||
+      ["project", "investor", "person", "auto"].includes(
+        candidate.entityType
+      )) &&
+    (candidate.investigationScope === undefined ||
+      ["basic", "funding", "social", "ecosystem", "all"].includes(
+        candidate.investigationScope
+      ))
+  );
+}
+
+function isValidTrackTrendsArgs(args: unknown): args is TrackTrendsArgs {
+  const candidate = args as TrackTrendsArgs;
+  return (
+    typeof args === "object" &&
+    args !== null &&
+    [
+      "hot_projects",
+      "funding",
+      "job_changes",
+      "new_tokens",
+      "ecosystem",
+      "all",
+    ].includes(candidate.category) &&
+    (candidate.timeRange === undefined ||
+      ["1d", "7d", "30d", "3m"].includes(candidate.timeRange)) &&
+    (candidate.filterBy === undefined ||
+      (typeof candidate.filterBy === "object" &&
+        (candidate.filterBy.ecosystem === undefined ||
+          typeof candidate.filterBy.ecosystem === "string") &&
+        (candidate.filterBy.tags === undefined ||
+          typeof candidate.filterBy.tags === "string") &&
+        (candidate.filterBy.minFunding === undefined ||
+          typeof candidate.filterBy.minFunding === "number")))
+  );
+}
+
+function isValidCompareEntitiesArgs(
+  args: unknown
+): args is CompareEntitiesArgs {
+  const candidate = args as CompareEntitiesArgs;
+  return (
+    typeof args === "object" &&
+    args !== null &&
+    Array.isArray(candidate.entities) &&
+    candidate.entities.every((entity) => typeof entity === "string") &&
+    (candidate.compareType === undefined ||
+      ["metrics", "funding", "ecosystem", "social", "all"].includes(
+        candidate.compareType
+      ))
+  );
+}
+
 function isValidSearchArgs(args: unknown): args is SearchArgs {
   return (
     typeof args === "object" &&
@@ -272,6 +412,129 @@ class RootdataServer {
   private setupListToolsHandler(): void {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
+        {
+          name: "analyzeComprehensive",
+          description:
+            "Comprehensive analysis combining multiple RootData endpoints for a holistic view",
+          inputSchema: {
+            type: "object",
+            properties: {
+              query: {
+                type: "string",
+                description:
+                  "Natural language query about crypto projects, investors, or trends",
+              },
+              analysisType: {
+                type: "string",
+                description: "Type of analysis to perform",
+                enum: [
+                  "project",
+                  "investor",
+                  "ecosystem",
+                  "trends",
+                  "fundraising",
+                  "comprehensive",
+                ],
+              },
+              timeframe: {
+                type: "string",
+                description:
+                  "Time period for analysis (e.g., '7d', '30d', '2024-01')",
+              },
+              depth: {
+                type: "string",
+                description: "Level of detail required",
+                enum: ["basic", "detailed", "full"],
+              },
+              includeRelated: {
+                type: "boolean",
+                description: "Include related entities in the analysis",
+              },
+            },
+            required: ["query"],
+          },
+        },
+        {
+          name: "investigateEntity",
+          description:
+            "Deep dive into a specific entity with all related information",
+          inputSchema: {
+            type: "object",
+            properties: {
+              entityName: {
+                type: "string",
+                description: "Name of the project, investor, or person",
+              },
+              entityType: {
+                type: "string",
+                description: "Type of entity",
+                enum: ["project", "investor", "person", "auto"],
+              },
+              investigationScope: {
+                type: "string",
+                description: "What aspects to investigate",
+                enum: ["basic", "funding", "social", "ecosystem", "all"],
+              },
+            },
+            required: ["entityName"],
+          },
+        },
+        {
+          name: "trackTrends",
+          description:
+            "Track market trends across projects, funding, and social metrics",
+          inputSchema: {
+            type: "object",
+            properties: {
+              category: {
+                type: "string",
+                description: "Category to track",
+                enum: [
+                  "hot_projects",
+                  "funding",
+                  "job_changes",
+                  "new_tokens",
+                  "ecosystem",
+                  "all",
+                ],
+              },
+              timeRange: {
+                type: "string",
+                description: "Time range for trends",
+                enum: ["1d", "7d", "30d", "3m"],
+              },
+              filterBy: {
+                type: "object",
+                properties: {
+                  ecosystem: { type: "string" },
+                  tags: { type: "string" },
+                  minFunding: { type: "number" },
+                },
+              },
+            },
+            required: ["category"],
+          },
+        },
+        {
+          name: "compareEntities",
+          description: "Compare multiple projects or investors side by side",
+          inputSchema: {
+            type: "object",
+            properties: {
+              entities: {
+                type: "array",
+                items: { type: "string" },
+                description: "List of entity names to compare",
+              },
+              compareType: {
+                type: "string",
+                description: "Type of comparison",
+                enum: ["metrics", "funding", "ecosystem", "social", "all"],
+              },
+            },
+            required: ["entities"],
+          },
+        },
         {
           name: "searchEntities",
           description: "Search for projects, VCs, or people by keywords",
@@ -553,6 +816,625 @@ class RootdataServer {
     }));
   }
 
+  private async handleAnalyzeComprehensive(args: ComprehensiveQueryArgs) {
+    try {
+      const result: CrossFunctionalAnalysisResult = {
+        primaryData: null,
+      };
+
+      // First, search for the main entity
+      const searchResult = await this.makeApiRequest("ser_inv", {
+        query: args.query,
+        precise_x_search: false,
+      });
+
+      if (!searchResult.data || searchResult.data.length === 0) {
+        throw new Error(`No results found for query: ${args.query}`);
+      }
+
+      const mainEntity = searchResult.data[0];
+      let analysisPromises = [];
+
+      // Based on entity type and analysis requirements, fetch relevant data
+      if (mainEntity.type === 1) {
+        // Project
+        // Get detailed project info
+        analysisPromises.push(
+          this.makeApiRequest("get_item", {
+            project_id: mainEntity.id,
+            include_team: args.depth !== "basic",
+            include_investors: args.depth !== "basic",
+          }).then((res) => {
+            result.primaryData = res.data;
+          })
+        );
+
+        // Get funding rounds if requested
+        if (
+          args.analysisType === "comprehensive" ||
+          args.analysisType === "fundraising"
+        ) {
+          analysisPromises.push(
+            this.makeApiRequest("get_fac", {
+              project_id: mainEntity.id,
+              page: 1,
+              page_size: 10,
+            }).then((res) => {
+              result.fundraising = res.data;
+            })
+          );
+        }
+
+        // Get ecosystem data if requested
+        if (args.includeRelated) {
+          analysisPromises.push(
+            this.makeApiRequest("ecosystem_map", {}).then(
+              async (ecosystemData) => {
+                // Find relevant ecosystem and get related projects
+                if (result.primaryData && result.primaryData.ecosystem) {
+                  const ecosystemId = ecosystemData.data.find(
+                    (eco: { ecosystem_name: string; ecosystem_id: number }) =>
+                      eco.ecosystem_name === result.primaryData.ecosystem[0]
+                  )?.ecosystem_id;
+
+                  if (ecosystemId) {
+                    const relatedProjects = await this.makeApiRequest(
+                      "projects_by_ecosystems",
+                      {
+                        ecosystem_ids: ecosystemId.toString(),
+                      }
+                    );
+                    result.relatedProjects = relatedProjects.data;
+                  }
+                }
+              }
+            )
+          );
+        }
+
+        // Get hot index if analyzing trends
+        if (
+          args.analysisType === "trends" ||
+          args.analysisType === "comprehensive"
+        ) {
+          analysisPromises.push(
+            this.makeApiRequest("hot_index", { days: 7 }).then((res) => {
+              const projectRank = res.data.find(
+                (p: { project_id: number }) => p.project_id === mainEntity.id
+              );
+              if (projectRank) {
+                result.trends = { hotIndex: projectRank };
+              }
+            })
+          );
+        }
+      } else if (mainEntity.type === 2) {
+        // VC/Investor
+        // Get detailed VC info
+        analysisPromises.push(
+          this.makeApiRequest("get_org", {
+            org_id: mainEntity.id,
+            include_team: args.depth !== "basic",
+            include_investments: true,
+          }).then((res) => {
+            result.primaryData = res.data;
+          })
+        );
+
+        // Get recent funding activities
+        if (
+          args.analysisType === "comprehensive" ||
+          args.analysisType === "investor"
+        ) {
+          analysisPromises.push(
+            this.makeApiRequest("get_invest", {
+              page: 1,
+              page_size: 10,
+            }).then((res) => {
+              const investorData = res.data.items.find(
+                (inv: { invest_id: number }) => inv.invest_id === mainEntity.id
+              );
+              if (investorData) {
+                result.investors = [investorData];
+              }
+            })
+          );
+        }
+      } else if (mainEntity.type === 3) {
+        // Person
+        // Get detailed person info
+        analysisPromises.push(
+          this.makeApiRequest("get_people", {
+            people_id: mainEntity.id,
+          }).then((res) => {
+            result.primaryData = res.data;
+          })
+        );
+
+        // Get job changes if available
+        if (args.includeRelated) {
+          analysisPromises.push(
+            this.makeApiRequest("job_changes", {
+              recent_joinees: true,
+              recent_resignations: true,
+            }).then((res) => {
+              result.people = res.data;
+            })
+          );
+        }
+      }
+
+      // Get market trends if comprehensive analysis
+      if (args.analysisType === "comprehensive") {
+        analysisPromises.push(
+          this.makeApiRequest("new_tokens", {}).then((res) => {
+            result.tokens = res.data;
+          })
+        );
+      }
+
+      await Promise.all(analysisPromises);
+
+      // Generate summary
+      result.summary = this.generateSummary(result, args);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  private async handleInvestigateEntity(args: InvestigateEntityArgs) {
+    try {
+      // First identify the entity
+      const searchResult = await this.makeApiRequest("ser_inv", {
+        query: args.entityName,
+      });
+
+      if (!searchResult.data || searchResult.data.length === 0) {
+        throw new Error(`Entity not found: ${args.entityName}`);
+      }
+
+      const entity = searchResult.data[0];
+      const investigation: any = {
+        entityInfo: entity,
+        details: null,
+        relatedData: {},
+      };
+
+      // Determine entity type and fetch appropriate data
+      if (entity.type === 1) {
+        // Project
+        investigation.details = await this.makeApiRequest("get_item", {
+          project_id: entity.id,
+          include_team: true,
+          include_investors: true,
+        });
+
+        if (
+          args.investigationScope === "funding" ||
+          args.investigationScope === "all"
+        ) {
+          investigation.relatedData.funding = await this.makeApiRequest(
+            "get_fac",
+            {
+              project_id: entity.id,
+            }
+          );
+        }
+
+        if (
+          args.investigationScope === "social" ||
+          args.investigationScope === "all"
+        ) {
+          const xHotProjects = await this.makeApiRequest("hot_project_on_x", {
+            heat: true,
+            influence: true,
+            followers: true,
+          });
+
+          investigation.relatedData.socialMetrics = {
+            heat: xHotProjects.data.heat?.find(
+              (p: { project_id: number }) => p.project_id === entity.id
+            ),
+            influence: xHotProjects.data.influence?.find(
+              (p: { project_id: number }) => p.project_id === entity.id
+            ),
+            followers: xHotProjects.data.followers?.find(
+              (p: { project_id: number }) => p.project_id === entity.id
+            ),
+          };
+        }
+
+        if (
+          args.investigationScope === "ecosystem" ||
+          args.investigationScope === "all"
+        ) {
+          const ecosystemMap = await this.makeApiRequest("ecosystem_map", {});
+          const projectEcosystems = investigation.details.data?.ecosystem || [];
+
+          if (projectEcosystems.length > 0) {
+            const ecosystemIds = ecosystemMap.data
+              .filter((eco: { ecosystem_name: string; ecosystem_id: number }) =>
+                projectEcosystems.includes(eco.ecosystem_name)
+              )
+              .map(
+                (eco: { ecosystem_name: string; ecosystem_id: number }) =>
+                  eco.ecosystem_id
+              );
+
+            if (ecosystemIds.length > 0) {
+              investigation.relatedData.relatedProjects =
+                await this.makeApiRequest("projects_by_ecosystems", {
+                  ecosystem_ids: ecosystemIds.join(","),
+                });
+            }
+          }
+        }
+      } else if (entity.type === 2) {
+        // VC
+        investigation.details = await this.makeApiRequest("get_org", {
+          org_id: entity.id,
+          include_team: true,
+          include_investments: true,
+        });
+
+        if (
+          args.investigationScope === "funding" ||
+          args.investigationScope === "all"
+        ) {
+          investigation.relatedData.investorAnalysis =
+            await this.makeApiRequest("get_invest", {
+              page: 1,
+              page_size: 10,
+            });
+        }
+      } else if (entity.type === 3) {
+        // Person
+        investigation.details = await this.makeApiRequest("get_people", {
+          people_id: entity.id,
+        });
+
+        if (
+          args.investigationScope === "social" ||
+          args.investigationScope === "all"
+        ) {
+          const xPopularFigures = await this.makeApiRequest(
+            "leading_figures_on_crypto_x",
+            {
+              rank_type: "heat",
+              page: 1,
+              page_size: 100,
+            }
+          );
+
+          investigation.relatedData.ranking = xPopularFigures.data.items?.find(
+            (p: { people_id: number }) => p.people_id === entity.id
+          );
+        }
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(investigation, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  private async handleTrackTrends(args: TrackTrendsArgs) {
+    try {
+      const trends: any = {};
+
+      if (args.category === "hot_projects" || args.category === "all") {
+        trends.hotProjects = await this.makeApiRequest("hot_index", {
+          days: args.timeRange === "1d" ? 1 : 7,
+        });
+      }
+
+      if (args.category === "funding" || args.category === "all") {
+        const endDate = new Date();
+        const startDate = new Date();
+
+        switch (args.timeRange) {
+          case "1d":
+            startDate.setDate(startDate.getDate() - 1);
+            break;
+          case "7d":
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+          case "30d":
+            startDate.setMonth(startDate.getMonth() - 1);
+            break;
+          case "3m":
+            startDate.setMonth(startDate.getMonth() - 3);
+            break;
+          default:
+            // Default to 7 days if timeRange is undefined
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+        }
+
+        trends.funding = await this.makeApiRequest("get_fac", {
+          start_time: startDate.toISOString().slice(0, 7),
+          end_time: endDate.toISOString().slice(0, 7),
+          min_amount: args.filterBy?.minFunding,
+        });
+      }
+
+      if (args.category === "job_changes" || args.category === "all") {
+        trends.jobChanges = await this.makeApiRequest("job_changes", {
+          recent_joinees: true,
+          recent_resignations: true,
+        });
+      }
+
+      if (args.category === "new_tokens" || args.category === "all") {
+        trends.newTokens = await this.makeApiRequest("new_tokens", {});
+      }
+
+      if (args.category === "ecosystem" || args.category === "all") {
+        trends.ecosystemMap = await this.makeApiRequest("ecosystem_map", {});
+
+        if (args.filterBy?.ecosystem) {
+          const ecosystemName = args.filterBy.ecosystem;
+          const ecosystemId = trends.ecosystemMap.data.find(
+            (eco: { ecosystem_name: string; ecosystem_id: number }) =>
+              eco.ecosystem_name.toLowerCase() === ecosystemName.toLowerCase()
+          )?.ecosystem_id;
+
+          if (ecosystemId) {
+            trends.ecosystemProjects = await this.makeApiRequest(
+              "projects_by_ecosystems",
+              {
+                ecosystem_ids: ecosystemId.toString(),
+              }
+            );
+          }
+        }
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(trends, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  private async handleCompareEntities(args: CompareEntitiesArgs) {
+    try {
+      const comparison: any = {
+        entities: [],
+        metrics: {},
+        summary: "",
+      };
+
+      // Search for all entities
+      for (const entityName of args.entities) {
+        const searchResult = await this.makeApiRequest("ser_inv", {
+          query: entityName,
+        });
+
+        if (searchResult.data && searchResult.data.length > 0) {
+          const entity = searchResult.data[0];
+          let entityData: any = {
+            basicInfo: entity,
+            details: null,
+          };
+
+          // Fetch details based on entity type
+          if (entity.type === 1) {
+            // Project
+            entityData.details = await this.makeApiRequest("get_item", {
+              project_id: entity.id,
+              include_team: true,
+              include_investors: true,
+            });
+
+            if (
+              args.compareType === "funding" ||
+              args.compareType === "all" ||
+              !args.compareType
+            ) {
+              entityData.funding = await this.makeApiRequest("get_fac", {
+                project_id: entity.id,
+              });
+            }
+
+            if (
+              args.compareType === "social" ||
+              args.compareType === "all" ||
+              !args.compareType
+            ) {
+              const hotProjects = await this.makeApiRequest(
+                "hot_project_on_x",
+                {
+                  heat: true,
+                  influence: true,
+                  followers: true,
+                }
+              );
+
+              entityData.socialMetrics = {
+                heat: hotProjects.data.heat?.find(
+                  (p: { project_id: number }) => p.project_id === entity.id
+                ),
+                influence: hotProjects.data.influence?.find(
+                  (p: { project_id: number }) => p.project_id === entity.id
+                ),
+                followers: hotProjects.data.followers?.find(
+                  (p: { project_id: number }) => p.project_id === entity.id
+                ),
+              };
+            }
+          } else if (entity.type === 2) {
+            // VC
+            entityData.details = await this.makeApiRequest("get_org", {
+              org_id: entity.id,
+              include_team: true,
+              include_investments: true,
+            });
+          } else if (entity.type === 3) {
+            // Person
+            entityData.details = await this.makeApiRequest("get_people", {
+              people_id: entity.id,
+            });
+          }
+
+          comparison.entities.push(entityData);
+        }
+      }
+
+      // Generate comparison metrics
+      comparison.metrics = this.generateComparisonMetrics(
+        comparison.entities,
+        args.compareType || "all"
+      );
+      comparison.summary = this.generateComparisonSummary(comparison);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(comparison, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  private generateSummary(
+    result: CrossFunctionalAnalysisResult,
+    args: ComprehensiveQueryArgs
+  ): string {
+    let summary = `Analysis for "${args.query}":\n\n`;
+
+    if (result.primaryData) {
+      const entityType = result.primaryData.project_name
+        ? "Project"
+        : result.primaryData.org_name
+        ? "VC/Organization"
+        : result.primaryData.people_name
+        ? "Person"
+        : "Entity";
+
+      summary += `${entityType}: ${
+        result.primaryData.project_name ||
+        result.primaryData.org_name ||
+        result.primaryData.people_name
+      }\n`;
+
+      if (result.primaryData.total_funding) {
+        summary += `Total Funding: ${(
+          result.primaryData.total_funding / 1e6
+        ).toFixed(2)}M\n`;
+      }
+
+      if (result.primaryData.establishment_date) {
+        summary += `Established: ${result.primaryData.establishment_date}\n`;
+      }
+    }
+
+    if (result.trends?.hotIndex) {
+      summary += `\nHot Index Rank: #${result.trends.hotIndex.rank} (Score: ${result.trends.hotIndex.eval})\n`;
+    }
+
+    if (result.relatedProjects) {
+      summary += `\nRelated Projects: ${result.relatedProjects.length} projects in the same ecosystem\n`;
+    }
+
+    if (result.fundraising?.items?.length) {
+      summary += `\nFundraising Rounds: ${result.fundraising.items.length} rounds found\n`;
+    }
+
+    return summary;
+  }
+
+  private generateComparisonMetrics(entities: any[], compareType: string): any {
+    const metrics: any = {};
+
+    entities.forEach((entity) => {
+      const name = entity.basicInfo.name;
+      metrics[name] = {};
+
+      if (entity.basicInfo.type === 1) {
+        // Project
+        if (entity.details?.data) {
+          metrics[name].funding = entity.details.data.total_funding;
+          metrics[name].establishedDate =
+            entity.details.data.establishment_date;
+          metrics[name].ecosystem = entity.details.data.ecosystem;
+          metrics[name].tags = entity.details.data.tags;
+        }
+
+        if (entity.socialMetrics) {
+          metrics[name].heat = entity.socialMetrics.heat?.score;
+          metrics[name].influence = entity.socialMetrics.influence?.score;
+          metrics[name].followers = entity.socialMetrics.followers?.score;
+        }
+      } else if (entity.basicInfo.type === 2) {
+        // VC
+        if (entity.details?.data) {
+          metrics[name].investmentCount =
+            entity.details.data.investments?.length;
+          metrics[name].establishedDate =
+            entity.details.data.establishment_date;
+          metrics[name].category = entity.details.data.category;
+        }
+      }
+    });
+
+    return metrics;
+  }
+
+  private generateComparisonSummary(comparison: any): string {
+    let summary = "Comparison Summary:\n\n";
+
+    comparison.entities.forEach((entity: any, index: number) => {
+      summary += `${index + 1}. ${entity.basicInfo.name} (${
+        entity.basicInfo.type === 1
+          ? "Project"
+          : entity.basicInfo.type === 2
+          ? "VC"
+          : "Person"
+      })\n`;
+    });
+
+    // Add key metric comparisons
+    const fundingComparison = Object.entries(comparison.metrics)
+      .filter(([_, metrics]: [string, any]) => metrics.funding)
+      .sort((a: any, b: any) => b[1].funding - a[1].funding);
+
+    if (fundingComparison.length > 0) {
+      summary += "\nFunding Comparison:\n";
+      fundingComparison.forEach(([name, metrics]: [string, any]) => {
+        summary += `${name}: ${(metrics.funding / 1e6).toFixed(2)}M\n`;
+      });
+    }
+
+    return summary;
+  }
+
   private setupCallToolHandler(): void {
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const toolName = request.params.name;
@@ -561,6 +1443,38 @@ class RootdataServer {
       console.error(`Calling tool: ${toolName}`);
 
       switch (toolName) {
+        case "analyzeComprehensive":
+          if (!isValidComprehensiveQueryArgs(args)) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              "Invalid comprehensive query arguments"
+            );
+          }
+          return this.handleAnalyzeComprehensive(args);
+        case "investigateEntity":
+          if (!isValidInvestigateEntityArgs(args)) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              "Invalid investigate entity arguments"
+            );
+          }
+          return this.handleInvestigateEntity(args);
+        case "trackTrends":
+          if (!isValidTrackTrendsArgs(args)) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              "Invalid track trends arguments"
+            );
+          }
+          return this.handleTrackTrends(args);
+        case "compareEntities":
+          if (!isValidCompareEntitiesArgs(args)) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              "Invalid compare entities arguments"
+            );
+          }
+          return this.handleCompareEntities(args);
         case "searchEntities":
           if (!isValidSearchArgs(args)) {
             throw new McpError(
